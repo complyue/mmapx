@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+void *system_io_mmap_alloc(size_t size);
+
 void *system_io_mmap_file_open(const char *filepath, int mode);
 
 void system_io_mmap_file_close(void *handle);

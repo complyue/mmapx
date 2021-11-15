@@ -31,7 +31,10 @@ module System.IO.MMap
 
      -- * Memory mapped files lazy interface
      mmapFileForeignPtrLazy,
-     mmapFileByteStringLazy
+     mmapFileByteStringLazy,
+
+     -- * Virtual allocation interface
+     mmapAlloc
 )
 where
 
@@ -359,6 +362,17 @@ mmapFileOpen filepath' mode = do
     handle <- newForeignPtr c_system_io_mmap_file_close ptr
     return handle
 
+-- | Allocate a virtual address space region of specified size
+mmapAlloc :: Int               -- ^ size of address space to allocate
+          -> IO (ForeignPtr a) -- ^ the allocated region returned as foreign pointer
+mmapAlloc size = do
+    rawptr <- do
+        ptr <- c_system_io_mmap_alloc (fromIntegral size)
+        when (ptr == nullPtr) $ throwErrno "anonymous mmap failed"
+        return (castPtr ptr)
+    let rawsizeptr = castIntToPtr size
+    newForeignPtrEnv c_system_io_mmap_munmap_funptr rawsizeptr rawptr
+
 --castPtrToInt :: Ptr a -> Int
 --castPtrToInt ptr = ptr `minusPtr` nullPtr
 
@@ -374,6 +388,10 @@ foreign import ccall unsafe "HsMmap.h system_io_mmap_file_open"
 -- | Used in finalizers, to close handle
 foreign import ccall unsafe "HsMmap.h &system_io_mmap_file_close"
     c_system_io_mmap_file_close :: FunPtr(Ptr () -> IO ())
+
+-- | virtual address space allocation via mmap
+foreign import ccall unsafe "HsMmap.h system_io_mmap_alloc"
+    c_system_io_mmap_alloc :: CSize -> IO (Ptr a)
 
 -- | Mmemory maps file from handle, using mode, starting offset and size
 foreign import ccall unsafe "HsMmap.h system_io_mmap_mmap"

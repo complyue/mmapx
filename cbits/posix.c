@@ -76,6 +76,36 @@ void system_io_mmap_file_close(void *handle)
 
 static char zerolength[1];
 
+//foreign import ccall unsafe "system_io_mmap_alloc" c_system_io_mmap_alloc :: CInt -> IO (Ptr ())
+void *system_io_mmap_alloc(size_t size)
+{
+    void *ptr = NULL;
+    int prot;
+    int flags;
+
+	prot = PROT_READ|PROT_WRITE;
+	flags = MAP_PRIVATE|MAP_ANONYMOUS;
+
+    if( size>0 ) {
+        ptr = mmap(NULL,size,prot,flags,-1,0);
+
+        if( ptr == MAP_FAILED ) {
+	    return NULL;
+        }
+    }
+    else {
+        ptr = zerolength;
+    }
+
+#ifdef _DEBUG
+    if( ptr ) {
+        counters++;
+    }
+#endif
+
+    return ptr;
+}
+
 //foreign import ccall unsafe "system_io_mmap_mmap" c_system_io_mmap_mmap :: Ptr () -> CInt -> CLLong -> CInt -> IO (Ptr ())
 void *system_io_mmap_mmap(void *handle, int mode, long long offset, size_t size)
 {
